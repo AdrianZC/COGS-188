@@ -91,26 +91,16 @@ def solve_8_queens(board: List[List[int]], col: int) -> bool:
     Returns:
         bool: whether the solution exists
     """
-    queen_count = 0
-
-    for i in range(len(board)):
-        for j in range(len(board)):
-            if board[i][j] == 1:
-                queen_count += 1
-                board[i][j] = 0
-                if not is_safe_row_diag(board, i, j):
-                    return False
-                board[i][j] = 1
-    
-    if queen_count > len(board):
-        return False
-
     if col >= len(board):
-        total_queens = sum(sum(row) for row in board)
-        return total_queens == len(board)
+        return True
         
     for row in range(len(board)):
-        if is_safe_row_diag(board, row, col):
+        if board[row][col] == 1:
+            if is_safe_row_diag(board, row, col):
+                return solve_8_queens(board, col + 1)
+            return False
+            
+        elif is_safe_row_diag(board, row, col):
             board[row][col] = 1
             if solve_8_queens(board, col + 1):
                 return True
