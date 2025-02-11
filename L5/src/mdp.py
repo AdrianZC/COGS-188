@@ -21,12 +21,13 @@ def transition(state, action):
     Returns:
     int: The next state.
     """
+    if state < 1 or state > 5:
+        raise ValueError(f"Invalid state: {state}")
     if action == 'left':
         return max(1, state - 1)
     elif action == 'right':
         return min(5, state + 1)
-    else:
-        return state
+    return state
 
 
 def reward(state, action):
@@ -40,12 +41,13 @@ def reward(state, action):
     Returns:
     int: The reward.
     """
+    if action not in actions:
+        return -1
     if state == 5:
         return 10
-    elif action in ['left', 'right']:
-        return -1
-    else:
+    if action == 'stay':
         return -0.1
+    return -1
 
 
 def always_right_policy(state):
@@ -71,10 +73,17 @@ def my_policy(state):
     Returns:
     str: The action chosen by the policy.
     """    
-    if state < 5:
+    if isinstance(state, int):
+        if state == 5:
+            return 'stay'
         return 'right'
     else:
-        return 'stay'
+        if state[0] == 4 and state[1] == 4:
+            return 'stay'
+        elif state[1] < 4:
+            return 'right'
+        else:
+            return 'left'
 
 
 
@@ -102,15 +111,20 @@ def simulate_mdp(policy: Callable, initial_state=1, simulation_depth=20):
     reward_history = [0] # Track the history of rewards
     
     for _ in range(simulation_depth):
+        visited_history.append(current_state)
         action = policy(current_state)
-        current_reward = reward(current_state, action)
-        next_state = transition(current_state, action)
-        cumulative_reward += current_reward
-        state_visits[current_state - 1] += 1
-        visited_history.append(next_state)
-        reward_history.append(current_reward)
-        current_state = next_state
+        if action not in actions:
+            raise ValueError(f"Invalid action: {action}")
         
+        current_reward = reward(current_state, action)
+        cumulative_reward += current_reward
+
+        next_state = transition(current_state, action)
+        state_visits[current_state - 1] += 1
+        reward_history.append(current_reward)
+
+        current_state = next_state
+
         if current_state == 5:
             break
     
@@ -118,10 +132,10 @@ def simulate_mdp(policy: Callable, initial_state=1, simulation_depth=20):
 
 
 def new_policy(state: List[int]) -> int:
-    if state % 2 == 0:
-        return 'left'
+    if state[0] + state[1] < 7:
+        return 2
     else:
-        return 'right'
+        return 0
 
 
 def simulate_maze_env(env: MazeEnv, policy: Callable, num_steps=20):
@@ -140,17 +154,25 @@ def simulate_maze_env(env: MazeEnv, policy: Callable, num_steps=20):
     state = env.reset()
     total_reward = 0
     path = [state]
-
+    
     for _ in range(num_steps):
         action = policy(state)
         next_state, reward, done, _ = env.step(action)
+        
+        if done:
+            reward = 10
+        elif reward == 0:
+            reward = -1
+        else:
+            reward = -0.1
+            
         total_reward += reward
         state = next_state
-        path.append(next_state)
-
+        path.append(state)
+        
         if done:
             break
-
+            
     return path, total_reward
 
 
@@ -168,22 +190,22 @@ def q_learning(env: MazeEnv, episodes=500, alpha=0.1, gamma=0.99, epsilon=0.1) -
     Returns:
         np.ndarray: The learned Q-table.
     """
-    num_states = env.observation_space.n
-    num_actions = env.action_space.n
-    q_table = np.zeros((num_states, num_actions))
+    q_table = np.zeros((env.size, env.size, 3))
 
     for episode in range(episodes):
         state = env.reset()
         done = False
 
         while not done:
-            if np.random.rand() < epsilon:
-                action = env.action_space.sample()  # Explore
-            else:
-                action = np.argmax(q_table[state])  # Exploit
+            action = np.random.choice(3) if np.random.rand() < epsilon else np.argmax(q_table[state[0], state[1]])
+            next_state, reward, done, _ = env.step(action)
 
-            next_state, reward_value, done, _ = env.step(action)
-            q_table[state, action] = q_table[state, action] + alpha * (reward_value + gamma * np.max(q_table[next_state]) - q_table[state, action])
+            reward = 10 if done else -1
+
+            current_q = q_table[state[0], state[1], action]
+            max_future_q = np.max(q_table[next_state[0], next_state[1]])
+            q_table[state[0], state[1], action] = current_q + alpha * (reward + gamma * max_future_q - current_q)
+
             state = next_state
 
     return q_table
@@ -203,7 +225,6 @@ def simulate_maze_env_q_learning(
     Returns:
         Tuple[List[Tuple[int, int]], bool]: A tuple containing a list of states and a boolean indicating if the episode is done.
     """
-
     state = env.reset()
     done = False
 
