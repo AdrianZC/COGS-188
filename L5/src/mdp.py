@@ -41,12 +41,11 @@ def reward(state, action):
     Returns:
     int: The reward.
     """
+    next_s = transition(state, action)
     if action not in actions:
         return -1
-    if state == 5:
+    if next_s == 5:
         return 10
-    if action == 'stay':
-        return -0.1
     return -1
 
 
@@ -111,23 +110,22 @@ def simulate_mdp(policy: Callable, initial_state=1, simulation_depth=20):
     reward_history = [0] # Track the history of rewards
     
     for _ in range(simulation_depth):
-        visited_history.append(current_state)
         action = policy(current_state)
         if action not in actions:
             raise ValueError(f"Invalid action: {action}")
+
+        r = reward(current_state, action)
+        cumulative_reward += r
+        reward_history.append(r)
         
-        current_reward = reward(current_state, action)
-        cumulative_reward += current_reward
-
-        next_state = transition(current_state, action)
         state_visits[current_state - 1] += 1
-        reward_history.append(current_reward)
-
-        current_state = next_state
+        
+        current_state = transition(current_state, action)
+        visited_history.append(current_state)
 
         if current_state == 5:
             break
-    
+
     return state_visits, cumulative_reward, visited_history, reward_history
 
 
@@ -157,16 +155,9 @@ def simulate_maze_env(env: MazeEnv, policy: Callable, num_steps=20):
     
     for _ in range(num_steps):
         action = policy(state)
-        next_state, reward, done, _ = env.step(action)
+        next_state, rew, done, _ = env.step(action)
         
-        if done:
-            reward = 10
-        elif reward == 0:
-            reward = -1
-        else:
-            reward = -0.1
-            
-        total_reward += reward
+        total_reward += rew
         state = next_state
         path.append(state)
         
@@ -190,22 +181,25 @@ def q_learning(env: MazeEnv, episodes=500, alpha=0.1, gamma=0.99, epsilon=0.1) -
     Returns:
         np.ndarray: The learned Q-table.
     """
-    q_table = np.zeros((env.size, env.size, 3))
+    q_table = np.zeros((env.size, env.size, env.action_space.n))
 
     for episode in range(episodes):
         state = env.reset()
         done = False
 
         while not done:
-            action = np.random.choice(3) if np.random.rand() < epsilon else np.argmax(q_table[state[0], state[1]])
+            x, y = state
+            if np.random.uniform(0, 1) < epsilon:
+                action = env.action_space.sample()
+            else:
+                action = np.argmax(q_table[x, y])
+
             next_state, reward, done, _ = env.step(action)
-
-            reward = 10 if done else -1
-
-            current_q = q_table[state[0], state[1], action]
-            max_future_q = np.max(q_table[next_state[0], next_state[1]])
-            q_table[state[0], state[1], action] = current_q + alpha * (reward + gamma * max_future_q - current_q)
-
+            x_next, y_next = next_state
+            old_value = q_table[x, y, action]
+            next_max = np.max(q_table[x_next, y_next])
+            new_value = old_value + alpha * (reward + gamma * next_max - old_value)
+            q_table[x, y, action] = new_value
             state = next_state
 
     return q_table
