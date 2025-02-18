@@ -23,7 +23,18 @@ def policy_evaluation(env, V, policy, episodes=500000, gamma=1.0):
         # Generate one episode
         while not done:
             action = policy[state]
-            next_state, reward, done, _ = env.step(action)
+            result = env.step(action)
+
+            if len(result) == 3:
+                next_state, reward, done = result
+            elif len(result) == 4:
+                next_state, reward, done, _ = result
+            elif len(result) == 5:
+                next_state, reward, terminated, truncated, _ = result
+                done = terminated or truncated
+            else:
+                raise ValueError(f"Unexpected result format from env.step: {result}")
+                
             episode.append((state, action, reward))
             state = next_state
 
@@ -32,8 +43,11 @@ def policy_evaluation(env, V, policy, episodes=500000, gamma=1.0):
                 # Update returns_sum and returns_count
         G = 0
         visited_states = set()
-        for state, reward in reversed(episode):
+
+        for i in range(len(episode)-1, -1, -1):
+            state, action, reward = episode[i]
             G = gamma * G + reward
+            
             if state not in visited_states:
                 visited_states.add(state)
                 if state not in return_sum:
@@ -45,3 +59,5 @@ def policy_evaluation(env, V, policy, episodes=500000, gamma=1.0):
     # Update V(s) as the average return
     for state in return_sum:
         V[state] = return_sum[state] / return_count[state]
+
+    return V
