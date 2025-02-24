@@ -94,10 +94,13 @@ def q_learning(env, num_episodes, alpha, gamma, epsilon):
     # TODO: Implement Q-learning algorithm
     max_steps_per_episode = 200
 
+    episode_rewards = []
+
     for episode in range(num_episodes):
         state = env.reset()
         done = False
         step_count = 0
+        total_reward = 0
         
         while not done and step_count < max_steps_per_episode:
             if np.random.random() < epsilon:
@@ -113,6 +116,18 @@ def q_learning(env, num_episodes, alpha, gamma, epsilon):
             
             state = next_state
             step_count += 1
+            total_reward += reward
+
+        episode_rewards.append(total_reward)
+
+    plt.figure()
+    plt.plot(episode_rewards, label=f'alpha={alpha}, epsilon={epsilon}')
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward')
+    plt.title('Q-Learning on Windy Cliff')
+    plt.legend()
+    plt.savefig('q_learning_windy_cliff_hyperparameters.png')
+    plt.close()
     
     return q_table
 
@@ -121,11 +136,14 @@ def sarsa(env, num_episodes, alpha, gamma, epsilon):
 
     # TODO: Implement SARSA algorithm
     max_steps_per_episode = 200
+
+    episode_rewards = []
     
     for episode in range(num_episodes):
         state = env.reset()
         done = False
         step_count = 0
+        total_reward = 0
         
         if np.random.random() < epsilon:
             action = env.action_space.sample()
@@ -147,6 +165,18 @@ def sarsa(env, num_episodes, alpha, gamma, epsilon):
             state = next_state
             action = next_action
             step_count += 1
+            total_reward += reward
+
+        episode_rewards.append(total_reward)
+
+    plt.figure()
+    plt.plot(episode_rewards, label=f'alpha={alpha}, epsilon={epsilon}')
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward')
+    plt.title('SARSA on Windy Cliff')
+    plt.legend()
+    plt.savefig('sarsa_windy_cliff_hyperparameters.png')
+    plt.close()
     
     return q_table
 
