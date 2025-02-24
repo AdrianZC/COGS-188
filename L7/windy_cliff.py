@@ -92,11 +92,14 @@ def q_learning(env, num_episodes, alpha, gamma, epsilon):
     q_table = np.zeros([env.observation_space.n, env.action_space.n])
 
     # TODO: Implement Q-learning algorithm
+    max_steps_per_episode = 200
+
     for episode in range(num_episodes):
         state = env.reset()
         done = False
+        step_count = 0
         
-        while not done:
+        while not done and step_count < max_steps_per_episode:
             if np.random.random() < epsilon:
                 action = env.action_space.sample()
             else:
@@ -109,6 +112,7 @@ def q_learning(env, num_episodes, alpha, gamma, epsilon):
             )
             
             state = next_state
+            step_count += 1
     
     return q_table
 
@@ -116,16 +120,19 @@ def sarsa(env, num_episodes, alpha, gamma, epsilon):
     q_table = np.zeros([env.observation_space.n, env.action_space.n])
 
     # TODO: Implement SARSA algorithm
+    max_steps_per_episode = 200
+    
     for episode in range(num_episodes):
         state = env.reset()
         done = False
+        step_count = 0
         
         if np.random.random() < epsilon:
             action = env.action_space.sample()
         else:
             action = np.argmax(q_table[state])
         
-        while not done:
+        while not done and step_count < max_steps_per_episode:
             next_state, reward, done, _ = env.step(action)
             
             if np.random.random() < epsilon:
@@ -139,6 +146,7 @@ def sarsa(env, num_episodes, alpha, gamma, epsilon):
             
             state = next_state
             action = next_action
+            step_count += 1
     
     return q_table
 
