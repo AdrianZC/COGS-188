@@ -92,6 +92,23 @@ def q_learning(env, num_episodes, alpha, gamma, epsilon):
     q_table = np.zeros([env.observation_space.n, env.action_space.n])
 
     # TODO: Implement Q-learning algorithm
+    for episode in range(num_episodes):
+        state = env.reset()
+        done = False
+        
+        while not done:
+            if np.random.random() < epsilon:
+                action = env.action_space.sample()
+            else:
+                action = np.argmax(q_table[state])
+            
+            next_state, reward, done, _ = env.step(action)
+            
+            q_table[state][action] = q_table[state][action] + alpha * (
+                reward + gamma * np.max(q_table[next_state]) - q_table[state][action]
+            )
+            
+            state = next_state
     
     return q_table
 
@@ -99,6 +116,29 @@ def sarsa(env, num_episodes, alpha, gamma, epsilon):
     q_table = np.zeros([env.observation_space.n, env.action_space.n])
 
     # TODO: Implement SARSA algorithm
+    for episode in range(num_episodes):
+        state = env.reset()
+        done = False
+        
+        if np.random.random() < epsilon:
+            action = env.action_space.sample()
+        else:
+            action = np.argmax(q_table[state])
+        
+        while not done:
+            next_state, reward, done, _ = env.step(action)
+            
+            if np.random.random() < epsilon:
+                next_action = env.action_space.sample()
+            else:
+                next_action = np.argmax(q_table[next_state])
+            
+            q_table[state][action] = q_table[state][action] + alpha * (
+                reward + gamma * q_table[next_state][next_action] - q_table[state][action]
+            )
+            
+            state = next_state
+            action = next_action
     
     return q_table
 
@@ -125,9 +165,9 @@ q_table = q_learning(env, num_episodes=500, alpha=0.1, gamma=0.99, epsilon=0.1)
 visualize_policy(env, q_table, filename='q_learning_windy_cliff.gif')
 
 # Testing SARSA
-# env = WindyCliffWorld()
-# q_table = sarsa(env, num_episodes=500, alpha=0.1, gamma=0.99, epsilon=0.1)
-# visualize_policy(env, q_table, filename='sarsa_windy_cliff.gif')
+env = WindyCliffWorld()
+q_table = sarsa(env, num_episodes=500, alpha=0.1, gamma=0.99, epsilon=0.1)
+visualize_policy(env, q_table, filename='sarsa_windy_cliff.gif')
 
 # TODO: Run experiments with different hyperparameters and visualize the results
 # You should generate two plots:
