@@ -116,8 +116,8 @@ class RaceTrack(object):
                 self.velocity = np.array([0, 0], dtype=np.int16)
                 return 0 
         self.position = pos
-         # a small negative reward each (non-collision/non-finish) time step 
-         # encourages finding the shortest path
+        # a small negative reward each (non-collision/non-finish) time step 
+        # encourages finding the shortest path
         return -1
 
     def _random_start_position(self):
@@ -169,7 +169,6 @@ class RaceTrack(object):
         """Convert 2-tuple to integer action: {0-8}"""
         return int((a[0] + 1) * 3 + a[1] + 1)
     
-
 
 # You could define some example courses here or in main.py:
 big_course = [
