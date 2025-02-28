@@ -40,8 +40,8 @@ class DMControlCartPoleWrapper:
     """
     Wraps dm_control's cartpole so that it looks like a standard discrete
     environment. We fix a discrete action set of size=2:
-      0 -> -1.0
-      1 -> +1.0
+    0 -> -1.0
+    1 -> +1.0
     """
 
     def __init__(self, domain_name="cartpole", task_name="swingup"):
@@ -239,20 +239,20 @@ class DQNTrainer:
         Performs one gradient descent update on the policy network using a random minibatch sampled from replay memory.
         
         Purpose:
-          1. Sampling the Batch:
-             - Sample a minibatch of transitions (s, a, r, s') from the replay memory.
-          2. Batch Processing:
-             - Unpack transitions into batches.
-             - Prepare tensors for current states, actions, rewards, and non-terminal next states.
-          3. Q-value Calculation:
-             - Current Q-values: For each state s in the batch, compute Q(s, a; θ) using the policy network and select Q(s, a) via gather.
-             - Next Q-values: For non-terminal states, compute max_a' Q(s', a'; θ⁻) using the target network; terminal states yield 0.
-          4. Target Computation:
-             - Compute the target Q-values as: y = r + γ * max_a' Q(s', a'; θ⁻).
-          5. Loss Calculation:
-             - Compute the loss using Smooth L1 (Huber) loss between current Q-values and the target.
-          6. Optimization:
-             - Zero gradients, backpropagate the loss, clip gradients if necessary, and take an optimizer step.
+        1. Sampling the Batch:
+            - Sample a minibatch of transitions (s, a, r, s') from the replay memory.
+        2. Batch Processing:
+            - Unpack transitions into batches.
+            - Prepare tensors for current states, actions, rewards, and non-terminal next states.
+        3. Q-value Calculation:
+            - Current Q-values: For each state s in the batch, compute Q(s, a; θ) using the policy network and select Q(s, a) via gather.
+            - Next Q-values: For non-terminal states, compute max_a' Q(s', a'; θ⁻) using the target network; terminal states yield 0.
+        4. Target Computation:
+            - Compute the target Q-values as: y = r + γ * max_a' Q(s', a'; θ⁻).
+        5. Loss Calculation:
+            - Compute the loss using Smooth L1 (Huber) loss between current Q-values and the target.
+        6. Optimization:
+            - Zero gradients, backpropagate the loss, clip gradients if necessary, and take an optimizer step.
         """
         # STEP 1: Check if there's enough data in replay memory; if not, simply return.
         # TODO: Check memory size (e.g., if len(self.memory) < self.params.BATCH_SIZE: return)
@@ -303,9 +303,9 @@ class DQNTrainer:
         
         - For each parameter θ_target in the target network:
         
-          θ_target ← τ θ_policy + (1 - τ) θ_target
-        
-          where τ is a small constant (e.g., 0.005) that determines the update rate. This gradual adjustment helps stabilize training.
+        θ_target ← τ θ_policy + (1 - τ) θ_target
+    
+        where τ is a small constant (e.g., 0.005) that determines the update rate. This gradual adjustment helps stabilize training.
         
         **Implementation Details:**
         
@@ -354,13 +354,13 @@ class DQNTrainer:
         Guidance for implementation:
         1. For each episode, reset the environment and initialize the state and episode_reward.
         2. For each time step within the episode:
-           - Use self.select_action() to choose an action based on the current state.
-           - Apply the action in the environment using self.env.step() to obtain the next observation, reward, and termination status.
-           - Convert the observation to a tensor (if the episode hasn't ended) to form the next_state.
-           - Store the transition (state, action, next_state, reward) in the replay memory using self.memory.push().
-           - Perform an optimization step with self.optimize_model() to update the policy network.
-           - Update the target network with self.soft_update().
-           - Break the loop if the episode has ended.
+        - Use self.select_action() to choose an action based on the current state.
+        - Apply the action in the environment using self.env.step() to obtain the next observation, reward, and termination status.
+        - Convert the observation to a tensor (if the episode hasn't ended) to form the next_state.
+        - Store the transition (state, action, next_state, reward) in the replay memory using self.memory.push().
+        - Perform an optimization step with self.optimize_model() to update the policy network.
+        - Update the target network with self.soft_update().
+        - Break the loop if the episode has ended.
         3. After each episode, record the accumulated episode reward and update the rewards plot by calling self.plot_rewards().
         4. After all episodes, print "Training complete", display the final rewards plot, and close the interactive plot.
 
