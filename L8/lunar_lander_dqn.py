@@ -10,7 +10,7 @@ import torch.nn.functional as F
 import os
 
 # Define the Lunar Lander environment with render_mode
-env = gym.make('LunarLander-v2', render_mode='rgb_array')
+env = gym.make('LunarLander-v3', render_mode='rgb_array')
 
 # Set seeds for reproducibility
 torch.manual_seed(0)
@@ -37,6 +37,10 @@ class QNetwork(nn.Module):
         # However, make sure that the input size of the first layer matches the state size
         # and the output size of the last layer matches the action size
         # This is because the input to the network will be the state and the output will be the Q-values for each action
+
+        self.fc1 = nn.Linear(state_size, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, action_size)
     
     def forward(self, state):
         """Build a network that maps state -> action values.
@@ -49,6 +53,11 @@ class QNetwork(nn.Module):
         """
         # TODO: Define the forward pass
         # You're basically just passing the state through the network here (based on the layers you defined in __init__) and returning the output
+
+        x = F.relu(self.fc1(state))
+        x = F.relu(self.fc2(x))
+
+        return self.fc3(x)
 
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""
@@ -72,6 +81,9 @@ class ReplayBuffer:
         # TODO: Implement this method
         # Use the namedtuple 'Experience' to create an experience tuple and append it to the memory
 
+        e = self.experience(state, action, reward, next_state, done)
+        self.memory.append(e)
+
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         # TODO: Complete this method
@@ -81,10 +93,11 @@ class ReplayBuffer:
         states = torch.from_numpy(np.vstack([e.state for e in experiences if e is not None])).float().to(device)
         # Similarly, convert the other components of the experiences to tensors
         # the `actions` tensor should be of type long
-        actions = ...
-        rewards = ...
-        next_states = ...
-        dones = ...
+        actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(device)
+        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
+        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(device)
+        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
+
         return (states, actions, rewards, next_states, dones)
 
     def __len__(self):
@@ -110,24 +123,32 @@ class DQNAgent:
         # Hints: Use QNetwork to create both qnetwork_local and qnetwork_target, and move them to device
         # Use optim.Adam to create an optimizer for qnetwork_local
 
-
+        self.qnetwork_local = QNetwork(state_size, action_size, seed).to(device)
+        self.qnetwork_target = QNetwork(state_size, action_size, seed).to(device)
+        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=0.001)
 
         # Replay memory
         # TODO: Initialize replay memory
         # Hint: Create a ReplayBuffer object with appropriate parameters (action_size, buffer_size, batch_size, seed)
 
+        self.memory = ReplayBuffer(action_size, buffer_size=int(1e5), batch_size=64, seed=seed)
 
         self.t_step = 0
+        self.UPDATE_EVERY = 4
 
     def step(self, state, action, reward, next_state, done):
         """Save experience in replay memory, and use random sample from buffer to learn."""
         # TODO: Save the experience in replay memory
         # Hint: Use the add method of ReplayBuffer
 
-
+        self.memory.add(state, action, reward, next_state, done)
+    
+        if self.t_step == 0:
+            self.memory.add(state, action, reward, next_state, done)
 
         # Learn every UPDATE_EVERY time steps.
-        self.t_step = (self.t_step + 1) % 4
+        self.t_step = (self.t_step + 1) % self.UPDATE_EVERY
+
         if self.t_step == 0:
             if len(self.memory) > self.memory.batch_size:
                 experiences = self.memory.sample()
@@ -169,8 +190,18 @@ class DQNAgent:
         # 3. Compute the loss between Q expected and Q target
         # 4. Perform a gradient descent step to update the local network
 
+        Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
+        Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
+        Q_expected = self.qnetwork_local(states).gather(1, actions)
+        loss = F.mse_loss(Q_expected, Q_targets)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
+
         # TODO: Update target network
         # Hint: Use the soft_update method provided
+
+        self.soft_update(self.qnetwork_local, self.qnetwork_target, tau=1e-3)
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
