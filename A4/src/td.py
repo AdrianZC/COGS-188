@@ -16,9 +16,16 @@ def initialize_q_table(state_bins: dict, action_bins: list) -> np.ndarray:
         np.ndarray: A Q-table initialized to zeros with dimensions matching the state and action space.
     """
     # TODO: Implement this function
-    ...
-    
 
+    dims = []
+
+    for key, bins_list in state_bins.items():
+        for bins in bins_list:
+            dims.append(len(bins) + 1)
+
+    dims.append(len(action_bins))
+
+    return np.zeros(dims)
 
 # TD Learning algorithm
 def td_learning(env: Environment, num_episodes: int, alpha: float, gamma: float, epsilon: float, state_bins: dict, action_bins: list, q_table:np.ndarray=None) -> tuple:
@@ -46,6 +53,10 @@ def td_learning(env: Environment, num_episodes: int, alpha: float, gamma: float,
     for episode in tqdm(range(num_episodes), desc="Training Episodes"):
         # reset env
         
+        time_step = env.reset()
+        state = quantize_state(time_step.observation, state_bins)
+        episode_reward = 0
+
         # run the episode
             # select action
             # take action
@@ -53,7 +64,26 @@ def td_learning(env: Environment, num_episodes: int, alpha: float, gamma: float,
             # update Q-table
             # if it is the last timestep, break
         # keep track of the reward
-        ...
+
+        while not time_step.last():
+            if np.random.rand() < epsilon:
+                action = np.random.randint(len(action_bins))
+            else:
+                action = np.argmax(q_table[state])
+
+            time_step = env.step(action_bins[action].reshape(1,))
+            reward = time_step.reward or 0.0
+            episode_reward += reward
+
+            if not time_step.last():
+                next_state = quantize_state(time_step.observation, state_bins)
+                best_next_action = np.argmax(q_table[next_state])
+                td_target = reward + gamma * q_table[next_state][best_next_action]
+                td_error = td_target - q_table[state][action]
+                q_table[state][action] += alpha * td_error
+                state = next_state
+
+        rewards.append(episode_reward)
 
     return q_table, rewards
 
