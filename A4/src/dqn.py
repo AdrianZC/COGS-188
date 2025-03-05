@@ -434,6 +434,7 @@ class DQNTrainer:
 
                 # TODO: Save the transition in replay memory using self.memory.push().
 
+                reward_tensor = torch.tensor([reward], device=self.device)
                 self.memory.push(state, action, next_state, reward_tensor)
 
                 # TODO: Advance state to next_state.
